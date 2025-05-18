@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
-import openai
-import os
+from openai import OpenAI
 
 # Set page config
 st.set_page_config(page_title="RevGuard", layout="wide")
@@ -12,6 +11,11 @@ with st.sidebar:
     api_key = st.text_input("OpenAI API Key", type="password")
     uploaded_file = st.file_uploader("Upload Financial CSV", type=["csv"])
 
+# Initialize OpenAI client
+client = None
+if api_key:
+    client = OpenAI(sk-proj-uhyizaPvnrC7TrUnW-ogSHSOs8K)
+
 # Main app
 st.title("RevGuard AI Financial Analysis")
 
@@ -20,9 +24,7 @@ if uploaded_file:
     st.subheader("Data Preview")
     st.dataframe(df.head())
 
-    if api_key and st.button("Analyze with AI"):
-        openai.api_key = api_key
-        
+    if client and st.button("Analyze with AI"):
         # Prepare data sample for LLM
         sample_data = df.head(100).to_string()
         prompt = f"""
@@ -40,14 +42,17 @@ if uploaded_file:
         """
         
         with st.spinner("AI is analyzing your finances..."):
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3
-            )
-            
-            analysis = response.choices[0].message.content
-            st.subheader("AI Financial Analysis")
-            st.markdown(analysis)
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3
+                )
+                
+                analysis = response.choices[0].message.content
+                st.subheader("AI Financial Analysis")
+                st.markdown(analysis)
+            except Exception as e:
+                st.error(f"Error during analysis: {str(e)}")
 else:
     st.info("Please upload a CSV file to get started")
